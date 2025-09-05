@@ -1,36 +1,12 @@
-# Mess Attendance & Billing System
+# React + Vite
 
-A simple web app to manage daily meal attendance in a mess and calculate monthly bills.  
-Built with **React + Firebase**.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
----
+Currently, two official plugins are available:
 
-## 🚀 Features
-- User login with Google (Firebase Auth)  
-- Users can mark **today’s meal only** (Whole Day / Afternoon / Night)  
-- Users can view their own past meals & running bill  
-- Admin dashboard to view all users, totals, and monthly bills  
-- Secure Firestore rules (users cannot edit/delete past data, only admin can manage data)  
-- Free hosting with Firebase Hosting  
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
----
+## Expanding the ESLint configuration
 
-## 📂 Tech Stack
-- **Frontend**: React + Vite + TailwindCSS  
-- **Backend/DB**: Firebase Firestore + Firebase Auth  
-- **Hosting**: Firebase Hosting  
-
----
-
-## 🔑 Setup
-1. Clone this repo:
-   ```bash
-   git clone <your-repo-url>
-   cd mess-attendance-billing
-
-
-👥 Team
-
-Tejas  — Contributor 
-Rupali -- reviewer.
-Yashpal — Contributor
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
