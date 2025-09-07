@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() { return request.auth != null; }
+    function isOwnUserDoc(userId) { return isAuthenticated() && request.auth.uid == userId; }
+    function hasRole(roleName) { return isAuthenticated() && request.auth.token.role == roleName; }
+
+    // 🔹 Users collection
+    match /users/{userId} {
+      allow get: if isOwnUserDoc(userId) || hasRole('admin');
+      allow list: if hasRole('admin');
+      allow create: if isOwnUserDoc(userId)
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.role == "user";
+      allow update: if isOwnUserDoc(userId)
+                    && !( 'role' in request.resource.data && request.resource.data.role != resource.data.role )
+                    && !( 'createdAt' in request.resource.data );
+      allow delete: if hasRole('admin');
+    }
+
+    // 🔹 Posts collection
+    match /posts/{postId} {
+      allow create: if isAuthenticated()
+                    && request.resource.data.ownerId == request.auth.uid
+                    && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow read: if resource.data.isPublic == true
+                  || (isAuthenticated() && resource.data.ownerId == request.auth.uid)
+                  || hasRole('admin');
+      allow update, delete: if (isAuthenticated() && resource.data.ownerId == request.auth.uid) || hasRole('admin');
+    }
+
+    // 🔹 Admin-only data
+    match /adminData/{docId} {
+      allow read, write: if hasRole('admin');
+    }
+
+    // 🔹 Attendance collection
+    match /attendance/{docId} {
+      // Users can read their own docs, admins can read all
+      allow get: if hasRole('admin') || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow list: if hasRole('admin') || isAuthenticated(); 
+      // (with where("userId", "==", uid), user still only sees their own)
+
+      // Users can create only their own record for today
+      allow create: if isAuthenticated()
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasOnly(['userId','date','meals','createdAt'])
+        && request.resource.data.meals.keys().hasOnly(['AFTERNOON','NIGHT'])
+        && (request.resource.data.meals.AFTERNOON is bool)
+        && (request.resource.data.meals.NIGHT is bool)
+        && (request.resource.data.meals.AFTERNOON == true || request.resource.data.meals.NIGHT == true)
+        && request.resource.data.date == request.time.date().toString()
+        && docId == (request.auth.uid + '_' + request.resource.data.date)
+        && !exists(/databases/$(database)/documents/attendance/$(docId));
+
+      // Users cannot update or delete, only admins can
+      allow update, delete: if hasRole('admin');
+    }
+
+    // 🔹 Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

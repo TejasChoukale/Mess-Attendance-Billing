@@ -9,7 +9,7 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login.jsx";
 import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
-import PrivateRoute from "./components/PrivateRoute";
+import PrivateRoute from "./components/routes/PrivateRoute.jsx";
 
 function AppRoutes() {
   return (
