@@ -1,15 +1,17 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './index.css';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import App from './App.jsx';
+// src/main.jsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
 
 import Signup from "./pages/Signup";
 import Login from "./pages/Login.jsx";
 import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/routes/PrivateRoute.jsx";
+import AdminRoute from "./components/routes/AdminRoute.jsx";
+import AdminAttendance from "./components/AdminAttendance.jsx";
 
 function AppRoutes() {
   return (
@@ -20,12 +22,23 @@ function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+
           <Route
             path="/dashboard"
             element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
+            }
+          />
+
+          {/* 🔹 Admin page */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminAttendance />
+              </AdminRoute>
             }
           />
         </Routes>
