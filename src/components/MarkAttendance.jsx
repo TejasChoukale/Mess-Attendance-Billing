@@ -1,7 +1,7 @@
 // src/components/MarkAttendance.jsx
 import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 
 function todayYMD() {
   const d = new Date();
@@ -27,33 +27,38 @@ export default function MarkAttendance() {
     console.log("- Project ID:", db?.app?.options?.projectId);
   }, [user]);
 
-  // Helper to check if a meal is already marked
-  const checkMeal = async (meal) => {
+  // Real-time listener for a meal
+  const checkMealRealtime = (meal) => {
     if (!user) return;
-    
-    try {
-      const docId = `${user.uid}_${today}_${meal}`;
-      const ref = doc(db, "attendance", docId);
-      const snap = await getDoc(ref);
-      
+
+    const docId = `${user.uid}_${today}_${meal}`;
+    const ref = doc(db, "attendance", docId);
+
+    const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        setMarked((s) => ({ ...s, [meal]: true }));
         const data = snap.data();
-        
-        // ✅ Show popup if status changed and user hasn't seen it
-        if (data.status && data.status !== "PENDING" && !data.seenByUser) {
+        setMarked((s) => ({ ...s, [meal]: true }));
+
+        // Show popup if status changed and user hasn't seen it
+        if (data.status && !data.seenByUser) {
           setPopup({ meal, status: data.status, ref });
         }
       }
-    } catch (error) {
-      console.error(`❌ Error checking ${meal}:`, error);
-    }
+    });
+
+    return unsub;
   };
 
+  // Set up real-time listeners
   useEffect(() => {
     if (user) {
-      checkMeal("AFTERNOON");
-      checkMeal("NIGHT");
+      const unsubAfternoon = checkMealRealtime("AFTERNOON");
+      const unsubNight = checkMealRealtime("NIGHT");
+
+      return () => {
+        unsubAfternoon && unsubAfternoon();
+        unsubNight && unsubNight();
+      };
     }
   }, [user]);
 
@@ -82,8 +87,8 @@ export default function MarkAttendance() {
         userId: user.uid,
         date: today,
         meal,
-        status: "PENDING", // ✅ Default status
-        seenByUser: false, // ✅ User hasn't seen admin response yet
+        status: "PENDING", // Default status
+        seenByUser: false, // User hasn't seen admin response yet
         createdAt: serverTimestamp(),
       };
 
@@ -95,7 +100,6 @@ export default function MarkAttendance() {
     } catch (error) {
       console.error("❌ Error submitting:", error);
       
-      // More specific error messages
       if (error.code === 'permission-denied') {
         setMsg("Permission denied. Please contact admin to update Firestore security rules.");
       } else if (error.code === 'unauthenticated') {
