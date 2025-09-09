@@ -1,6 +1,7 @@
+// src/components/MarkAttendance.jsx
 import { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 function todayYMD() {
   const d = new Date();
@@ -11,6 +12,7 @@ export default function MarkAttendance() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [marked, setMarked] = useState({ AFTERNOON: false, NIGHT: false });
+  const [popup, setPopup] = useState(null);
 
   const user = auth.currentUser;
   const today = todayYMD();
@@ -28,11 +30,23 @@ export default function MarkAttendance() {
   // Helper to check if a meal is already marked
   const checkMeal = async (meal) => {
     if (!user) return;
-    const docId = `${user.uid}_${today}_${meal}`;
-    const ref = doc(db, "attendance", docId);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      setMarked((s) => ({ ...s, [meal]: true }));
+    
+    try {
+      const docId = `${user.uid}_${today}_${meal}`;
+      const ref = doc(db, "attendance", docId);
+      const snap = await getDoc(ref);
+      
+      if (snap.exists()) {
+        setMarked((s) => ({ ...s, [meal]: true }));
+        const data = snap.data();
+        
+        // ✅ Show popup if status changed and user hasn't seen it
+        if (data.status && data.status !== "PENDING" && !data.seenByUser) {
+          setPopup({ meal, status: data.status, ref });
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error checking ${meal}:`, error);
     }
   };
 
@@ -68,18 +82,43 @@ export default function MarkAttendance() {
         userId: user.uid,
         date: today,
         meal,
+        status: "PENDING", // ✅ Default status
+        seenByUser: false, // ✅ User hasn't seen admin response yet
         createdAt: serverTimestamp(),
       };
 
+      console.log("📝 Writing data:", writeData);
       await setDoc(ref, writeData);
       setMarked((s) => ({ ...s, [meal]: true }));
-      setMsg(`${meal} attendance saved! ✅`);
+      setMsg(`${meal} attendance saved! ✅ Status: PENDING`);
+      
     } catch (error) {
       console.error("❌ Error submitting:", error);
-      setMsg("Error: " + error.message);
+      
+      // More specific error messages
+      if (error.code === 'permission-denied') {
+        setMsg("Permission denied. Please contact admin to update Firestore security rules.");
+      } else if (error.code === 'unauthenticated') {
+        setMsg("Authentication required. Please sign in again.");
+      } else {
+        setMsg("Error: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Mark popup as seen
+  const closePopup = async () => {
+    if (popup?.ref) {
+      try {
+        await updateDoc(popup.ref, { seenByUser: true });
+        console.log("✅ Marked as seen by user");
+      } catch (error) {
+        console.error("❌ Error marking as seen:", error);
+      }
+    }
+    setPopup(null);
   };
 
   return (
@@ -106,6 +145,35 @@ export default function MarkAttendance() {
       </button>
 
       {msg && <p className="mt-3 text-sm text-red-600">{msg}</p>}
+
+      {popup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center">
+            <h2 className="text-lg font-bold mb-2">🍽 Status Update</h2>
+            <p className="text-gray-700 mb-4">
+              Your <strong>{popup.meal}</strong> request has been:
+            </p>
+            <p
+              className={`mb-4 text-lg font-bold ${
+                popup.status === "APPROVED"
+                  ? "text-green-600"
+                  : popup.status === "REJECTED"
+                  ? "text-red-600"
+                  : "text-yellow-600"
+              }`}
+            >
+              {popup.status === "APPROVED" ? "✅ APPROVED" : 
+               popup.status === "REJECTED" ? "❌ REJECTED" : "⏳ PENDING"}
+            </p>
+            <button
+              onClick={closePopup}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 p-2 bg-gray-100 text-xs">
         <strong>Debug Info:</strong>
