@@ -5,6 +5,7 @@ import "./index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 
+import Home from "./pages/Home"; // ✅ NEW: Import Home component
 import Signup from "./pages/Signup";
 import Login from "./pages/Login.jsx";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -18,7 +19,8 @@ function AppRoutes() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
+          {/* ✅ UPDATED: Home page as landing page */}
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
