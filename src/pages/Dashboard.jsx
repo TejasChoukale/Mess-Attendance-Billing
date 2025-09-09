@@ -4,8 +4,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import MarkAttendance from "../components/MarkAttendance";
-import MyAttendanceHistory from "../components/MyAttendanceHistory";
+import UserDashboard from "./UserDashboard";
+import AdminDashboard from "./AdminDashboard";
 
 export default function Dashboard() {
   const { user, claims } = useAuth();
@@ -47,17 +47,7 @@ export default function Dashboard() {
         </div>
 
         {/* Main content */}
-        {isAdmin ? (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded mb-6 text-sm text-yellow-800">
-            ✅ You are logged in as <strong>Admin</strong>. Use the button above
-            to manage attendance records.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            <MarkAttendance />
-            <MyAttendanceHistory />
-          </div>
-        )}
+        {isAdmin ? <AdminDashboard /> : <UserDashboard />}
 
         <div className="mt-6 text-sm text-gray-600">
           <p>UID: {user?.uid}</p>
